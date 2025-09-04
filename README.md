@@ -49,4 +49,4 @@ EC事業者として出荷準備の時間を短縮するために開発しまし
 詳細は [PRIVACY_POLICY.md](./PRIVACY_POLICY.md) をご確認ください。
 
 ## 📣 作者
-X: https://x.com/yourhandle
+X: https://x.com/chickenyoung10
