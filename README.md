@@ -7,7 +7,6 @@ EC事業者として出荷準備の時間を短縮するために開発しまし
 **ブラウザ内で完結**し、ファイルはサーバーに送信・保存されません。
 
 👉 **ツール（GitHub Pages）**：https://chickenyoung1019.github.io/ec-order-to-b2cloud/
-
 👉 **note（背景・使い方）**：公開後に追記します  
 👉 **フィードバックフォーム**：公開後に追記します
 
@@ -46,7 +45,7 @@ EC事業者として出荷準備の時間を短縮するために開発しまし
 - ファイルはサーバーに送信・保存されません  
 - 利用状況や入力データの収集は行いません  
 
-詳細は [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) をご確認ください。
+詳細は [PRIVACY_POLICY.md](./PRIVACY_POLICY.md) をご確認ください。
 
 ## 📣 作者
 X: https://x.com/yourhandle
