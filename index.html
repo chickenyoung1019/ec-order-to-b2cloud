@@ -1,0 +1,354 @@
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EC注文送り状変換ツール</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SJIS 変換 -->
+  <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.2.0/encoding.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px; width: 100%;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 32px; margin-top: 20px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="container">
+    <h1 class="text-3xl font-bold mb-4 text-center text-gray-900">EC注文送り状変換ツール</h1>
+    <h2 class="text-sm md:text-base text-center text-gray-600 mt-8 mb-8">
+      EC注文ファイルをアップロードし、送り状CSVに変換します。
+    </h2>
+
+    <div class="mb-8 p-10 bg-blue-50 rounded-lg shadow-sm">
+      <h3 class="text-xl font-semibold mb-4 text-blue-700">1. EC注文ファイルをアップロード</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <label class="block">
+          <span class="block text-sm font-medium text-gray-700 mb-2">ECプラットフォーム</span>
+          <select class="block w-full rounded-md border-gray-300 focus:ring-blue-500 focus:border-blue-500" disabled>
+            <option>Amazon（.txt / タブ区切り / Shift-JIS）</option>
+          </select>
+          <div class="flex items-center mt-4">
+            <input
+              type="file"
+              id="fileInput"
+              accept=".txt"
+              class="text-sm text-gray-700
+                     file:py-2 file:px-4 file:rounded-full file:border-0
+                     file:text-sm file:font-semibold file:bg-blue-500 file:text-white
+                     hover:file:bg-blue-600 cursor-pointer" />
+          </div>
+        </label>
+
+        <label class="block">
+          <span class="block text-sm font-medium text-gray-700 mb-2">運送会社</span>
+          <select class="block w-full rounded-md border-gray-300 focus:ring-blue-500 focus:border-blue-500" disabled>
+            <option>ヤマト運輸 B2クラウド（.csv / Shift-JIS）</option>
+          </select>
+          <div class="mt-4 h-[42px] flex items-center">
+            <button
+              id="clearFile"
+              type="button"
+              class="inline-flex items-center rounded-full bg-gray-300 hover:bg-gray-400
+                     text-gray-800 text-sm font-semibold py-2 px-4 shadow">
+              ファイルをクリア
+            </button>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="p-10 bg-purple-50 rounded-lg shadow-sm text-center">
+      <h3 class="text-xl font-semibold mb-4 text-purple-700">2. 変換してダウンロード</h3>
+      <button
+        id="convertAndDownloadBtn"
+        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-lg opacity-50 cursor-not-allowed"
+        disabled>
+        変換してダウンロード
+      </button>
+      <p id="downloadMessage" class="mt-4 text-sm text-gray-500 italic"></p>
+
+      <p class="mt-6 text-xs text-gray-500 text-center">
+        ※ このツールはブラウザ内のみで変換します。ファイルはサーバー(外部)へ一切送信されません。
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // UI要素
+    const fileInput = document.getElementById('fileInput');
+    const btn = document.getElementById('convertAndDownloadBtn');
+    const clearBtn = document.getElementById('clearFile');
+    const downloadMessage = document.getElementById('downloadMessage');
+
+    // B2ヘッダー（列順維持）
+    const B2_HEADERS = [
+      "お客様管理番号","送り状種類","クール区分","伝票番号","出荷予定日","お届け予定日","配達時間帯","お届け先コード",
+      "お届け先電話番号","お届け先電話番号枝番","お届け先郵便番号","お届け先住所","お届け先アパートマンション名",
+      "お届け先会社・部門１","お届け先会社・部門名２","お届け先名","お届け先名(ｶﾅ)","敬称","ご依頼主コード","ご依頼主電話番号",
+      "ご依頼主電話番号枝番","ご依頼主郵便番号","ご依頼主住所","ご依頼主アパートマンション","ご依頼主名","ご依頼主名(ｶﾅ)",
+      "品名コード１","品名１","品名コード２","品名２","荷扱い１","荷扱い２","記事","ｺﾚｸﾄ代金引換額（税込)","内消費税税額等",
+      "止置き","営業所コード","発行枚数","個数口表示フラグ","請求先顧客コード","請求先分類コード","運賃管理番号",
+      "クロネコwebコレクトデータ登録","クロネコwebコレクト加盟店番号","クロネコwebコレクト申込受付番号１",
+      "クロネコwebコレクト申込受付番号２","クロネコwebコレクト申込受付番号３","お届け予定ｅメール利用区分",
+      "お届け予定ｅメールe-mailアドレス","入力機種","お届け予定ｅメールメッセージ","お届け完了ｅメール利用区分",
+      "お届け完了ｅメールe-mailアドレス","お届け完了ｅメールメッセージ","クロネコ収納代行利用区分","予備","収納代行請求金額(税込)",
+      "収納代行内消費税額等","収納代行請求先郵便番号","収納代行請求先住所","収納代行請求先住所（アパートマンション名）",
+      "収納代行請求先会社・部門名１","収納代行請求先会社・部門名２","収納代行請求先名(漢字)","収納代行先名(カナ)",
+      "収納代行問合せ先名(漢字)","収納代行問合せ先郵便番号","収納代行問合せ先住所","収納代行問合せ先住所（アパートマンション名）",
+      "収納代行問合せ先電話番号","収納代行管理番号","収納代行品名","収納代行備考","複数口くくりキー","検索キータイトル1",
+      "検索キー1","検索キータイトル2","検索キー2","検索キータイトル3","検索キー3","検索キータイトル4","検索キー4",
+      "検索キータイトル5","検索キー5","予備","予備","投函予定メール利用区分","投函予定メールe-mailアドレス",
+      "投函予定メールメッセージ","投函完了メール（お届け先宛）利用区分","投函完了メール（お届け先宛）e-mailアドレス",
+      "投函完了メール（お届け先宛）メールメッセージ","投函完了メール（ご依頼主宛）利用区分",
+      "投函完了メール（ご依頼主宛）e-mailアドレス","投函完了メール（ご依頼主宛）メールメッセージ"
+    ];
+
+    // Amazon列名（新形式のみ）
+    const AMZ = {
+      ORDER_ID: 'order-id',
+      ORDER_ITEM_ID: 'order-item-id',
+      RECIPIENT_NAME: 'recipient-name',
+      SHIP_POSTAL: 'ship-postal-code',
+      SHIP_STATE: 'ship-state',
+      SHIP_CITY: 'ship-city',
+      SHIP_ADDR1: 'ship-address-1',
+      SHIP_ADDR2: 'ship-address-2',
+      SHIP_ADDR3: 'ship-address-3',
+      SHIP_PHONE: 'ship-phone-number',
+      BUYER_PHONE: 'buyer-phone-number',
+      PRODUCT_NAME: 'product-name',
+      QTY: 'quantity-purchased',
+      SERVICE_LEVEL: 'ship-service-level',
+      DELIV_START: 'scheduled-delivery-start-date',
+      DELIV_END: 'scheduled-delivery-end-date',
+    };
+
+    // ヘルパ
+    function joinAddress(state, city, addr1, addr2) {
+      return [state, city, addr1, addr2].map(x => (x||'').trim()).filter(Boolean).join('');
+    }
+    function splitAddr3ToDeptFields(addr3) {
+      const s = String(addr3 || '');
+      const apt = s.slice(0, 16); // アパートマンション名 16
+      const dept1 = s.length > 16 ? s.slice(16, 16 + 25) : ''; // 会社・部門1 25
+      const dept2 = s.length > 41 ? s.slice(41, 41 + 25) : ''; // 会社・部門2 25
+      return [apt, dept1, dept2];
+    }
+    function normalizePhonePlus81(phone) {
+      if (!phone) return '';
+      const s = String(phone);
+      return s.startsWith('+81') ? '0' + s.slice(3) : s;
+    }
+    function pickPhone(r, idx) {
+      let p = (r[idx[AMZ.SHIP_PHONE]] || '').trim();
+      if (!p) p = (r[idx[AMZ.BUYER_PHONE]] || '').trim();
+      return normalizePhonePlus81(p);
+    }
+    function firstProductRaw25(names = []) {
+      const s = names.find(v => v != null && v !== '') || '';
+      return String(s).slice(0, 25);
+    }
+    function othersCountLabel(names = []) {
+      const n = names.filter(v => v != null && v !== '').length;
+      return n > 1 ? `ほか${n-1}件` : '';
+    }
+    function mapWindowToB2Code(startHour, endHour) {
+      if (startHour == null || endHour == null) return '';
+      if ((startHour === 8 && endHour === 12) || (startHour === 9 && endHour === 12)) return '0812';
+      if (startHour === 14 && endHour === 16) return '1416';
+      if (startHour === 16 && endHour === 18) return '1618';
+      if (startHour === 18 && endHour === 20) return '1820';
+      if (startHour === 19 && endHour === 21) return '1921';
+      return '';
+    }
+    function ymdFromIsoString(s) {
+      if (!s) return '';
+      const ymd = s.slice(0, 10);
+      return `${ymd.slice(0,4)}/${ymd.slice(5,7)}/${ymd.slice(8,10)}`;
+    }
+    function hourFromIsoString(s) {
+      if (!s) return null;
+      const t = s.indexOf('T');
+      if (t < 0) return null;
+      const hh = s.slice(t+1, t+3);
+      const n = Number(hh);
+      return Number.isFinite(n) ? n : null;
+    }
+    function todayYmdTokyo() {
+      const now = new Date();
+      const j = new Date(now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }));
+      const y = j.getFullYear();
+      const m = String(j.getMonth()+1).padStart(2,'0');
+      const d = String(j.getDate()).padStart(2,'0');
+      return `${y}/${m}/${d}`;
+    }
+    function toCsv(rows) {
+      return rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    }
+    function downloadAsSJIS(filename, csvText) {
+      const codes = Encoding.stringToCode(csvText);
+      const sjis = Encoding.convert(codes, 'SJIS', 'UNICODE');
+      const uint8 = new Uint8Array(sjis);
+      const blob = new Blob([uint8], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      URL.revokeObjectURL(url); a.remove();
+    }
+    function parseTSV(text) {
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.length>0);
+      const header = lines[0].replace(/^\ufeff/,'').split('\t').map(h => h.trim());
+      const rows = lines.slice(1).map(line => line.split('\t'));
+      return { header, rows };
+    }
+    function decodeSJISToString(arrayBuffer) {
+      const bytes = new Uint8Array(arrayBuffer);
+      const detected = Encoding.detect(bytes) || 'SJIS';
+      const unicodeCodes = Encoding.convert(bytes, 'UNICODE', detected);
+      return Encoding.codeToString(unicodeCodes);
+    }
+
+    // ボタン有効化
+    fileInput.addEventListener('change', e => {
+      const ok = !!e.target.files[0];
+      btn.disabled = !ok;
+      btn.classList.toggle('opacity-50', !ok);
+      btn.classList.toggle('cursor-not-allowed', !ok);
+      downloadMessage.textContent = '';
+    });
+    clearBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      btn.disabled = true;
+      btn.classList.add('opacity-50','cursor-not-allowed');
+      downloadMessage.textContent = '';
+    });
+
+    // 変換
+    btn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      try {
+        const buf = await file.arrayBuffer();
+        const txt = decodeSJISToString(buf);
+        const { header, rows } = parseTSV(txt);
+
+        // ヘッダーindex
+        const idx = {}; header.forEach((h,i)=>{ idx[h] = i; });
+
+        // グループ化（order-id 空でも 1行=1伝票で出す）
+        const groups = new Map();
+        rows.forEach((r, i) => {
+          const rawOrderId = (r[idx[AMZ.ORDER_ID]] || '').trim();
+          const key = rawOrderId || `_row_${i}`;
+
+          const name = (r[idx[AMZ.RECIPIENT_NAME]] || '').trim();
+          const postal = (r[idx[AMZ.SHIP_POSTAL]] || '').trim();
+          const state = (r[idx[AMZ.SHIP_STATE]] || '').trim();
+          const city = (r[idx[AMZ.SHIP_CITY]] || '').trim();
+          const addr1 = (r[idx[AMZ.SHIP_ADDR1]] || '').trim();
+          const addr2 = (r[idx[AMZ.SHIP_ADDR2]] || '').trim();
+          const addr3 = (r[idx[AMZ.SHIP_ADDR3]] || '').trim();
+          const address = joinAddress(state, city, addr1, addr2);
+          const [apt, dept1, dept2] = splitAddr3ToDeptFields(addr3);
+          const phone = pickPhone(r, idx);
+
+          const product = (r[idx[AMZ.PRODUCT_NAME]] || '').trim();
+          const qty = (r[idx[AMZ.QTY]] || '0').trim();
+          const orderItemId = (r[idx[AMZ.ORDER_ITEM_ID]] || '').trim();
+
+          const serviceLevel = (r[idx[AMZ.SERVICE_LEVEL]] || '').trim();
+          const startIso = (r[idx[AMZ.DELIV_START]] || '').trim();
+          const endIso   = (r[idx[AMZ.DELIV_END]]   || '').trim();
+
+          if (!groups.has(key)) {
+            groups.set(key, {
+              orderId: rawOrderId, name, postal, address, apt, dept1, dept2, phone,
+              productNames: [], quantities: [], orderItemIds: [],
+              serviceLevel, startIso, endIso
+            });
+          }
+          const g = groups.get(key);
+          g.name ||= name;
+          g.postal ||= postal;
+          g.address ||= address;
+          g.apt ||= apt; g.dept1 ||= dept1; g.dept2 ||= dept2;
+          g.phone ||= phone;
+          g.serviceLevel ||= serviceLevel;
+          g.startIso ||= startIso;
+          g.endIso ||= endIso;
+
+          g.productNames.push(product);
+          g.quantities.push(qty);
+          g.orderItemIds.push(orderItemId);
+        });
+
+        // 出荷予定日＝当日（JST）
+        const shipDate = todayYmdTokyo();
+
+        const out = [];
+        out.push(B2_HEADERS);
+
+        for (const [,g] of groups) {
+          // Scheduled時だけ予定日・時間帯
+          let plannedDate = '';
+          let timeBand = '';
+          if ((g.serviceLevel || '').toLowerCase() === 'scheduled') {
+            plannedDate = ymdFromIsoString(g.startIso);
+            timeBand = mapWindowToB2Code(hourFromIsoString(g.startIso), hourFromIsoString(g.endIso));
+          }
+
+          const values = {};
+          B2_HEADERS.forEach(h => values[h] = '');
+
+          values["お客様管理番号"] = g.orderId || ''; // 空でも出力
+          values["送り状種類"]   = '0';
+          values["クール区分"]   = '';
+          values["伝票番号"]     = '';
+          values["出荷予定日"]   = shipDate;
+          values["お届け予定日"] = plannedDate;
+          values["配達時間帯"]   = timeBand;
+
+          values["お届け先郵便番号"] = g.postal || '';
+          values["お届け先住所"]     = g.address || '';
+          values["お届け先アパートマンション名"] = g.apt || '';
+          values["お届け先会社・部門１"] = g.dept1 || '';
+          values["お届け先会社・部門名２"] = g.dept2 || '';
+          values["お届け先名"]       = g.name || '';
+          values["お届け先電話番号"] = g.phone || '';
+
+          values["品名１"]           = firstProductRaw25(g.productNames);
+          values["品名２"]           = othersCountLabel(g.productNames);
+          values["記事"]             = g.orderItemIds.find(Boolean) || '';
+          values["個数口表示フラグ"] = String(g.quantities.reduce((a,v)=> a + (Number(v||0)||0), 0));
+
+          out.push(B2_HEADERS.map(h => values[h] ?? ''));
+        }
+
+        const csv = toCsv(out);
+        const filename = `b2cloud_${new Date().toISOString().slice(0,10)}.csv`;
+        downloadAsSJIS(filename, csv);
+        downloadMessage.textContent = '変換とダウンロードが完了しました。';
+      } catch (e) {
+        console.error(e);
+        downloadMessage.textContent = '変換中にエラーが発生しました。';
+      }
+    });
+  </script>
+</body>
+</html>
