@@ -8,7 +8,8 @@ EC事業者として出荷準備の時間を短縮するために開発しまし
 
 ■ **ツール（GitHub Pages）**：https://chickenyoung1019.github.io/ec-order-to-b2cloud/
 
-■ **note（背景・使い方）**：公開後に追記します  
+■ **note（背景・使い方）**：
+https://note.com/chickenyoung10/n/n8b64d1ab7560
 ■ **フィードバックフォーム**：公開後に追記します
 
 ---
