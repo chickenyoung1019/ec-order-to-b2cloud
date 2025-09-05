@@ -10,7 +10,8 @@ EC事業者として出荷準備の時間を短縮するために開発しまし
 
 ■ **note（背景・使い方）**：
 https://note.com/chickenyoung10/n/n8b64d1ab7560
-■ **フィードバックフォーム**：公開後に追記します
+■ **フィードバックフォーム**：
+https://forms.gle/ViYPqsHMdioMHrgp8
 
 ---
 
