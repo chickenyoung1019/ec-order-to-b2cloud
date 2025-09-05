@@ -13,7 +13,7 @@ https://note.com/chickenyoung10/n/n8b64d1ab7560
 ■ **フィードバックフォーム**：
 https://forms.gle/ViYPqsHMdioMHrgp8
 
----
+
 
 ## ✔️ 特徴
 - Excel編集やコピペは不要  
@@ -28,14 +28,16 @@ https://forms.gle/ViYPqsHMdioMHrgp8
 4. 「変換」  
 → ダウンロードCSVをB2クラウドに取り込むだけ
 
-## 🗓️ 今後の予定
-- 他ECプラットフォーム対応（要望順）  
-- Amazon出荷通知ファイルの生成  
+## ◉ 今後の予定
+- 他ECプラットフォーム対応（要望順）    
 - 佐川e飛伝／ゆうパックプリントR 等への対応
 
-要望はこちら → （公開後にフォームURLを追記）
+## 〇 フィードバック
+今後の改善・新機能追加の参考にしたいので、ぜひご意見をお寄せください。  
+Googleフォームでフィードバックを送る:
+https://forms.gle/ViYPqsHMdioMHrgp8
 
----
+
 
 ## ⚠️ 注意事項・免責事項
 - 本ツールは個人開発であり、Amazon・ヤマト運輸の公式サービスではありません  
